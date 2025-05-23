@@ -1,0 +1,198 @@
+nie.define("index", function () {
+  var fage = true;
+  var url =
+    window.location.href.indexOf('test') !== -1 || window.location.href.indexOf('8080') !== -1
+      ? 'https://test.nie.163.com/test_html/blood-strike/m/startgame/pt/?pt=1'
+      : 'https://www.blood-strike.com/m/startgame/pt/?pt=1';
+  var vars = [];
+  var imgurl = "https://www.blood-strike.com/m/h5/20230616173700/img/pt/tips_80808de.png";
+  var GameStart = nie.require("nie.util.gamestart");
+  function queryString(key, href) {
+    href = href === undefined ? location.search : href;
+    var m = new RegExp("(?:&|/?)" + key + "=([^&$]+)").exec(href);
+    return m ? m[1] : '';
+  }
+  var wtf = queryString("wtf");
+  (function _rotateTip() {
+    var oriTipEl = $('<div style="display:none;position:fixed;z-index:999999;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.8);">' +
+      '<div style="display:block;position:absolute;height:2rem;left:0;right:0;top:50%;margin-top:-1rem;line-height:2rem;font-size:0.4rem;color:#fff;text-align:center;"><img class="tips" src="' + imgurl + '"/></div>' +
+      '</div>');
+
+    $('body').append(oriTipEl);
+    function judgeScreen() {
+      if (window.orientation == 90 || window.orientation == -90) {
+        oriTipEl.show();
+      } else {
+        oriTipEl.hide();
+      }
+    }
+    judgeScreen();
+    window.addEventListener('onorientationchange' in window ?
+      'orientationchange' : 'resize', judgeScreen, false);
+  }());
+  // 设置分享
+  nie.define(function () {
+    MShare.init({
+      debug: false, //开启调试，则会在左下角显示上报的log
+      hideMoments: false, //隐藏"微信"分享到朋友圈的按钮，默认是false，不隐藏，非微信无作用
+      hideFriend: false, //隐藏"微信"分享到朋友的按钮，默认是false，不隐藏，非微信无作用
+      wxapi: [], //"微信"自定义api接口列表(jsApiList)，默认已经有分享和菜单隐藏相关的，必须是数组，默认是空
+      wxtag: [], //"微信"自定义tag开放标签列表(openTagList)，必须是数组，默认是空
+      ready: function () { } //"微信"的wx.ready回调，默认为空，非微信无作用
+    });
+    MShare.setShare({
+      is_start: false, //当前是否接入了一键启动的H5
+      title: $('#share_title').html() || document.title,
+      desc: $('#share_desc').html() || document.title,
+      moments_title: $('#circle_title').html() || document.title, //该字段在有需要单独设置分享朋友圈情况下才设置，否则不需要
+      url: $('#share_url').html(), //is_start为true时，需要将页面需要的参数也带上
+      imgurl: $('#qr_icon').data('src'),
+      callback: function (ret) {
+        //目前只有微信分享type才有值，其余均为0
+        //1为好友，2为朋友圈，3为QQ，4为Qzone
+        //ret.channel为客户端类型
+      }
+    });
+    MShare.openShare({
+      title: '设置分享标题',
+      desc: '设置分享内容',
+      url: $('#share_url').html(),
+      type: 'facebook/twitter/line/weibo/qqzone/yixin', //当需要在浏览器中分享，则要指定分享渠道
+      callback: function (ret) {
+
+        //此为打开分享窗口后的回调（非分享成功）
+        //ret.channel为客户端类型
+      }
+    });
+  });
+  function initScreen() { //初始化html  font-size
+    let h = document.documentElement.clientHeight;
+    let w = document.documentElement.clientWidth;
+    var ua = navigator.userAgent;
+    var isSafari = ua.indexOf("Safari") != -1 && ua.indexOf("Version") != -1;
+    var isIphone = ua.indexOf("iPhone") != -1 && ua.indexOf("Version") != -1
+    var isIPad = isSafari && !isIphone && 'ontouchend' in document;
+    $('body').css('height', h)
+    // console.log(w, h, w / h, h / w, (h / 603 * 312.5 + "%"), (w / 375 * 312.5 + "%"))
+    if (!/iphone|ios|ipad|android|mobile/i.test(navigator.userAgent.toLowerCase()) && !isIPad) {
+      $("html").css("font-size", "410%");
+      $("html").addClass("on")
+    } else {
+      // $("html").css("font-size", h / w < 1.5 ? (h / 603 * 312.5 + "%") : (w / 375 * 312.5 + "%"));
+    }
+  }
+  initScreen()
+  $(window).on('resize', initScreen);//绑定
+  var index = {
+    init() {
+      index.bindFn();
+      index.getUrlVars();
+      index.judgeClient();
+
+    },
+    bindFn() {
+      GameStart.init({
+        target: "#gamestart", //启动按钮的容器
+        product: "blood-strike", //启动的游戏产品代号
+        param: "wtf=" + encodeURIComponent(wtf), //传递给游戏的参数，支持字符或者json对象，无则留空
+        type: 2,  //安卓启动方式，默认使用方式2，兼容更多机型
+        link: url, //自定义启动地址(需要https)，无自定义需要请删除此参数
+      });
+      $('#gamestart').click(function () {
+        MShare.report({
+          monitor: 'gamestart', //必填，需要使用英文，上报的关键字
+          desc: '启动', //上报的描述，这里使用中文
+        });
+      })
+      $('.down_btn').click(function () {
+        MShare.report({
+          monitor: 'down_btn', //必填，需要使用英文，上报的关键字
+          desc: '下载', //上报的描述，这里使用中文
+        });
+      })
+      var isClick = true
+      $('.select_btn').click(function () {
+        var that = $(this)
+        if (that.hasClass('on')) {
+          if (isClick) {
+            that.toggleClass('on')
+          }
+          isClick = false
+          setTimeout(function () {
+            that.find($('.select_btn')).hide()
+            isClick = true
+          }, 1000)
+        } else {
+          that.find($('.select_btn')).show()
+          that.toggleClass('on')
+          isClick = false
+          setTimeout(function () {
+            isClick = true
+          }, 1000)
+        }
+      })
+    },
+    //获取url内参数
+    getUrlVars: function () {
+      var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+        function (m, key, value) {
+          vars[key] = value;
+        }
+      );
+      return vars;
+    },
+    // 判断客户端
+    judgeClient() {
+      $('.open_btn').show();
+      let client = '';
+      if (/(iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent)) { //判断iPhone|iPad|iPod|iOS
+        client = 'iOS';
+        $(".share_nav,.slogan").addClass("on");
+        if (vars["pt"] || vars["es"] || vars["ar"] || vars["ru"] || vars["en"]) {
+          $('.open_btn').hide();
+        } else {
+          setTimeout(function () {
+            // $("#gamestart").click()
+          }, 100)
+        }
+      } else if (/(Android)/i.test(navigator.userAgent)) { //判断Android
+        client = 'Android';
+        $(".share_nav,.slogan").removeClass("on");
+        $(".btn_box").addClass("on")
+        if (vars["pt"] || vars["es"] || vars["ar"] || vars["ru"] || vars["en"]) {
+          $('.open_btn').hide();
+        } else {
+          if(wtf == undefined || wtf == ''){
+            location.href='ntes://game.mobile/newspike'
+          }else{
+            location.href='ntes://game.mobile/newspike?wtf='+ encodeURIComponent(wtf)
+          }
+          /* setTimeout(function () {
+            $("#gamestart").click()
+          }, 300)
+          var clickevent = setInterval(function () {
+            $("#gamestart").click()
+            console.log("点击启动")
+          }, 2600);
+          document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+              clearInterval(clickevent)
+            }
+          }); */
+        }
+      } else {
+        client = 'PC';
+        $(".share_nav,.slogan").addClass("on");
+        if (vars["pt"] || vars["es"] || vars["ar"] || vars["ru"] || vars["en"]) {
+          $('.open_btn').hide();
+        } else {
+          setTimeout(function () {
+            // $("#gamestart").click()
+          }, 100)
+        }
+      }
+      // return client;
+    }
+  }
+  index.init()
+})
